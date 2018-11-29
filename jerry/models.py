@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import utils
 
 from keras.models import Sequential
-from keras.layers import Dense, Embedding, CuDNNLSTM, CuDNNGRU, SpatialDropout1D, LSTM, GRU
+from keras.layers import Dense, Embedding, CuDNNLSTM, CuDNNGRU, SpatialDropout1D, LSTM, GRU, Bidirectional
 
 
 # A params dict example
@@ -25,6 +25,7 @@ params = {
     'optimizer': 'adam',
     'activation': 'sigmoid',
     'loss': 'binary_crossentropy',
+    'is_bidirectional': False,
 }
 
 
@@ -50,7 +51,10 @@ def get_model(params):
         model.add(SpatialDropout1D(rate=params['input_dropout']))
 
     for rnn_layer in get_rnn_layers(params):
-        model.add(rnn_layer)
+        if params['is_bidirectional']:
+            model.add(Bidirectional(rnn_layer))
+        else:
+            model.add(rnn_layer)
 
     model.add(Dense(2, activation=params['activation']))
     model.compile(loss=params['loss'], optimizer=params['optimizer'], metrics=['accuracy'])
