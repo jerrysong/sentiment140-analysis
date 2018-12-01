@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
+import zipfile
 
 from keras.models import Sequential
 from keras.layers import Dense, Embedding, CuDNNLSTM, CuDNNGRU, SpatialDropout1D, LSTM, GRU, Bidirectional
@@ -29,6 +29,13 @@ params = {
 }
 
 
+def read_zip_file(filepath, filename):
+    zfile = zipfile.ZipFile(filepath)
+    ifile = zfile.open(filename)
+    for line in ifile.readlines():
+        yield line
+
+
 def get_model(params):
     if params['embedding_type'] == 'randomly initialized':
         embedding_layer = Embedding(
@@ -51,7 +58,7 @@ def get_model(params):
         model.add(SpatialDropout1D(rate=params['input_dropout']))
 
     for rnn_layer in get_rnn_layers(params):
-        if params['is_bidirectional']:
+        if params.get('is_bidirectional'):
             model.add(Bidirectional(rnn_layer))
         else:
             model.add(rnn_layer)
@@ -65,7 +72,7 @@ def get_model(params):
 
 def get_embeddings_index(zip_embedding_path, embedding_name):
     embeddings_index = {}
-    for line in utils.read_zip_file(zip_embedding_path, embedding_name):
+    for line in read_zip_file(zip_embedding_path, embedding_name):
         values = line.decode().split()
         word = values[0]
         coefs = np.asarray(values[1:], dtype='float32')
@@ -80,6 +87,7 @@ def get_embedding_matrix(embeddings_index, word_index, embedding_dim):
         if embedding_vector is not None:
             # words not found in embedding index will be all-zeros.
             embedding_matrix[i] = embedding_vector
+    return embedding_matrix
 
 
 def get_pretrained_embedding_layer(
